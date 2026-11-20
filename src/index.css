@@ -1,0 +1,249 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root,
+html[data-theme="obsidian"] {
+  --cf-bg: #09090b;
+  --cf-surface: rgba(18, 18, 21, 0.95);
+  --cf-surface-solid: #121215;
+  --cf-surface-raised: #16161a;
+  --cf-surface-hover: #1e1e24;
+  --cf-input-bg: #09090b;
+  --cf-border: rgba(39, 39, 42, 0.92);
+  --cf-border-strong: #3f3f46;
+  --cf-text: #fafafa;
+  --cf-text-secondary: #e4e4e7;
+  --cf-text-muted: #a1a1aa;
+  --cf-scrim: rgba(9, 9, 11, 0.78);
+  --cf-header-bg: rgba(9, 9, 11, 0.92);
+  --cf-dot-color: rgba(255, 255, 255, 0.05);
+  --cf-lens-cloaked-bg: #0d1110;
+  --cf-emerald: #10b981;
+  --cf-emerald-text: #34d399;
+  --cf-emerald-soft: rgba(16, 185, 129, 0.14);
+  --cf-emerald-border: rgba(16, 185, 129, 0.48);
+  --cf-amber: #f59e0b;
+  --cf-amber-text: #fcd34d;
+  --cf-amber-soft: rgba(245, 158, 11, 0.14);
+  --cf-amber-border: rgba(245, 158, 11, 0.48);
+  --cf-sky-text: #7dd3fc;
+  --cf-sky-soft: rgba(14, 165, 233, 0.14);
+  --cf-sky-border: rgba(14, 165, 233, 0.48);
+  --cf-rose-text: #fda4af;
+  --cf-rose-soft: rgba(244, 63, 94, 0.12);
+  --cf-rose-border: rgba(244, 63, 94, 0.48);
+  --cf-highlight-restored: #a7f3d0;
+  --cf-specular: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --cf-primary-bg: #10b981;
+  --cf-primary-hover: #34d399;
+  --cf-primary-text: #09090b;
+  --cf-svg-track: #27272a;
+}
+
+html[data-theme="midnight"] {
+  --cf-bg: #070d19;
+  --cf-surface: rgba(15, 23, 42, 0.92);
+  --cf-surface-solid: #0f172a;
+  --cf-surface-raised: #162238;
+  --cf-surface-hover: #1e2d48;
+  --cf-input-bg: #070d19;
+  --cf-border: rgba(51, 65, 85, 0.85);
+  --cf-border-strong: #475569;
+  --cf-text: #f8fafc;
+  --cf-text-secondary: #e2e8f0;
+  --cf-text-muted: #94a3b8;
+  --cf-scrim: rgba(7, 13, 25, 0.72);
+  --cf-header-bg: rgba(7, 13, 25, 0.92);
+  --cf-dot-color: rgba(148, 163, 184, 0.07);
+  --cf-lens-cloaked-bg: #091722;
+  --cf-emerald: #10b981;
+  --cf-emerald-text: #34d399;
+  --cf-emerald-soft: rgba(16, 185, 129, 0.15);
+  --cf-emerald-border: rgba(16, 185, 129, 0.5);
+  --cf-amber: #f59e0b;
+  --cf-amber-text: #fcd34d;
+  --cf-amber-soft: rgba(245, 158, 11, 0.15);
+  --cf-amber-border: rgba(245, 158, 11, 0.5);
+  --cf-sky-text: #7dd3fc;
+  --cf-sky-soft: rgba(56, 189, 248, 0.14);
+  --cf-sky-border: rgba(56, 189, 248, 0.48);
+  --cf-rose-text: #fda4af;
+  --cf-rose-soft: rgba(244, 63, 94, 0.14);
+  --cf-rose-border: rgba(244, 63, 94, 0.48);
+  --cf-highlight-restored: #a7f3d0;
+  --cf-specular: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --cf-primary-bg: #10b981;
+  --cf-primary-hover: #34d399;
+  --cf-primary-text: #061310;
+  --cf-svg-track: #334155;
+}
+
+html[data-theme="daylight"] {
+  --cf-bg: #f8fafc;
+  --cf-surface: rgba(255, 255, 255, 0.96);
+  --cf-surface-solid: #ffffff;
+  --cf-surface-raised: #f1f5f9;
+  --cf-surface-hover: #e2e8f0;
+  --cf-input-bg: #f8fafc;
+  --cf-border: rgba(203, 213, 225, 0.95);
+  --cf-border-strong: #94a3b8;
+  --cf-text: #09090b;
+  --cf-text-secondary: #27272a;
+  --cf-text-muted: #475569;
+  --cf-scrim: rgba(248, 250, 252, 0.92);
+  --cf-header-bg: rgba(255, 255, 255, 0.92);
+  --cf-dot-color: rgba(15, 23, 42, 0.06);
+  --cf-lens-cloaked-bg: #ecfdf5;
+  --cf-emerald: #059669;
+  --cf-emerald-text: #047857;
+  --cf-emerald-soft: rgba(16, 185, 129, 0.12);
+  --cf-emerald-border: rgba(5, 150, 105, 0.48);
+  --cf-amber: #d97706;
+  --cf-amber-text: #b45309;
+  --cf-amber-soft: rgba(245, 158, 11, 0.14);
+  --cf-amber-border: rgba(217, 119, 6, 0.48);
+  --cf-sky-text: #0369a1;
+  --cf-sky-soft: rgba(14, 165, 233, 0.12);
+  --cf-sky-border: rgba(2, 132, 199, 0.48);
+  --cf-rose-text: #be123c;
+  --cf-rose-soft: rgba(244, 63, 94, 0.1);
+  --cf-rose-border: rgba(225, 29, 72, 0.48);
+  --cf-highlight-restored: #065f46;
+  --cf-specular: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --cf-primary-bg: #059669;
+  --cf-primary-hover: #047857;
+  --cf-primary-text: #ffffff;
+  --cf-svg-track: #cbd5e1;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  html,
+  body {
+    background-color: var(--cf-bg);
+    color: var(--cf-text);
+    font-family: var(--font-sans);
+    overflow-x: clip;
+    transition: background-color 180ms ease, color 180ms ease;
+  }
+}
+
+.anodized-surface {
+  background-image:
+    radial-gradient(var(--cf-dot-color) 1px, transparent 0),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.022'/%3E%3C/svg%3E");
+  background-size: 20px 20px, 160px 160px;
+}
+
+.dot-matrix-surface {
+  background-image: radial-gradient(var(--cf-dot-color) 1px, transparent 0);
+  background-size: 14px 14px;
+}
+
+.daylight-grid-surface {
+  background-image:
+    linear-gradient(to right, rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+@keyframes scanLaser {
+  0% {
+    transform: translateY(-10%);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(340px);
+    opacity: 0;
+  }
+}
+
+@keyframes packetFlow {
+  0% {
+    stroke-dashoffset: 64;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes infinityPulseFlow {
+  0% {
+    stroke-dashoffset: 180;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-scan-laser {
+  animation: scanLaser 1.1s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.animate-packet-flow {
+  stroke-dasharray: 8 8;
+  animation: packetFlow 0.85s linear infinite;
+}
+
+.animate-infinity-pulse {
+  stroke-dasharray: 22 158;
+  animation: infinityPulseFlow 3.6s linear infinite;
+}
+
+.animate-page-enter {
+  animation: pageEnter 220ms ease-out both;
+}
+
+/* Crisp custom scrollbars across all themes */
+.cloak-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.cloak-scroll::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.14);
+  border-radius: 9999px;
+}
+
+.cloak-scroll::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.5);
+  border-radius: 9999px;
+}
+
+.cloak-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.65);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-scan-laser,
+  .animate-packet-flow,
+  .animate-infinity-pulse,
+  .animate-page-enter {
+    animation: none !important;
+  }
+}

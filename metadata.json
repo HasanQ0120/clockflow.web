@@ -1,0 +1,6 @@
+{
+  "name": "CloakFlow",
+  "description": "Zero-Leak Hybrid AI Privacy Workspace with on-device redaction, outbound payload X-Ray inspection, and local secret restoration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
