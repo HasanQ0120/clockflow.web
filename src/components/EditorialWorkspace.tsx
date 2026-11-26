@@ -1541,7 +1541,7 @@ export function EditorialWorkspace({
             backgroundColor: 'var(--cf-surface)',
             borderColor: 'var(--cf-border)',
           }}
-          className="relative border rounded-md p-5 flex flex-col justify-between gap-3.5 h-full"
+          className="relative border rounded-md p-5 flex flex-col justify-between gap-3.5 min-w-0 overflow-hidden"
         >
           <CornerCrosshairs />
 
@@ -1724,14 +1724,18 @@ export function EditorialWorkspace({
             </div>
           </div>
 
-          {/* Output Reading Area (Fixed 340px height with internal scrolling) */}
+          {/* Output Reading Area (Fixed 220px height with internal scrolling) */}
           <div
             data-testid="restored-output-canvas"
             style={{
+              height: '220px',
+              maxHeight: '220px',
+              minHeight: '220px',
+              overflowY: 'auto',
               backgroundColor: 'var(--cf-input-bg)',
               borderColor: 'var(--cf-border)',
             }}
-            className="cloak-scroll rounded-lg border p-4.5 h-[340px] overflow-y-auto"
+            className="cloak-scroll rounded-lg border p-4 overflow-y-auto"
           >
             {isProcessing && !restoredText ? (
               <div className="space-y-4">

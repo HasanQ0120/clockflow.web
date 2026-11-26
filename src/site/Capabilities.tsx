@@ -42,7 +42,7 @@ export default function Capabilities({ nano }: { nano: string }) {
 
         <article className="cap cap-c">
           <h3>Protected cloud AI</h3>
-          <div className="wire" aria-hidden="true"><span>Browser</span><i /><span>Firebase AI Logic</span></div>
+          <div className="wire" aria-hidden="true"><span>Browser</span><i /><span>Gemini</span></div>
           <p className="fine">The request carries placeholders. The vault stays behind.</p>
         </article>
 

@@ -32,7 +32,7 @@ export default function FinalCta() {
       <div className="final-copy">
         <h2>Bring the work you could never paste anywhere else.</h2>
         <p>Open the workspace, paste something real, and read the sanitized version before anything is sent.</p>
-        <a className="btn btn-solid btn-lg" href="#/app">Open CloakFlow</a>
+        <a className="btn btn-solid btn-lg" href="#/app">Try CloakFlow Free</a>
       </div>
     </section>
   );

@@ -8,7 +8,7 @@ gsap.registerPlugin(ScrollTrigger);
 const STAGES = [
   { t: 'Detect locally.', d: 'Patterns find emails, phones, keys, tokens, passwords and cards in your browser. Gemini Nano, Chrome’s on-device model, looks for names and organisations when it is available, and you can protect anything else by selecting it.' },
   { t: 'Replace sensitive values.', d: 'Each value becomes a stable placeholder such as [PERSON_1]. The originals go into a vault in browser memory, and nowhere else.' },
-  { t: 'Process sanitized text.', d: 'When you choose cloud AI, only the sanitized text and your sanitized instruction are sent, through Firebase AI Logic, to Gemini. The model answers using the placeholders.' },
+  { t: 'Process sanitized text.', d: 'When you choose cloud AI, only the sanitized text and your sanitized instruction are sent, to Gemini. The model answers using the placeholders.' },
   { t: 'Restore locally.', d: 'The answer comes back, and only placeholders your vault issued are swapped for the real values. Offline tools skip the cloud entirely.' },
 ];
 

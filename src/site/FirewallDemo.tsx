@@ -10,7 +10,7 @@ const STEPS = [
   { name: 'You type', copy: 'A normal message, with real details in it.' },
   { name: 'Detected locally', copy: 'CloakFlow finds the sensitive values in your browser. Nothing has been sent.' },
   { name: 'Replaced', copy: 'Each value becomes a placeholder. The originals go into a vault that lives in browser memory.' },
-  { name: 'Cloud AI', copy: 'Only the placeholder version is sent, through Firebase AI Logic. The model answers using placeholders.' },
+  { name: 'Cloud AI', copy: 'Only the placeholder version is sent. The model answers using placeholders.' },
   { name: 'Restored locally', copy: 'The answer returns and the vault swaps the real values back in, on your device.' },
 ];
 const TIMES = [0, 1.8, 3.8, 5.8, 8.4];
