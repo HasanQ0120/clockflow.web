@@ -106,10 +106,10 @@ export async function runLocalOnSanitized({ sanitizedInput, actionType }) {
 /**
  * Cloud step: streams Gemini's answer for SANITIZED text from the Express server
  * (POST /api/hybrid-reason-stream). The server holds GEMINI_API_KEY; the browser never sees it.
- * @param {{ sanitizedInput: string, taskInstruction?: string, placeholders?: string[], signal?: AbortSignal, onChunk?: (accumulated: string) => void }} p
+ * @param {{ sanitizedInput: string, taskInstruction?: string, placeholders?: string[], signal?: AbortSignal, onChunk?: (accumulated: string) => void, onSend?: (bytes: number) => void }} p
  * @returns {Promise<{ text: string, model: string, cloudMs: number, sentBytes: number }>}
  */
-export async function streamCloud({ sanitizedInput, taskInstruction = '', placeholders = [], signal, onChunk }) {
+export async function streamCloud({ sanitizedInput, taskInstruction = '', placeholders = [], signal, onChunk, onSend }) {
   const t0 = performance.now();
   const payload = JSON.stringify({
     sanitizedInput,
@@ -118,6 +118,7 @@ export async function streamCloud({ sanitizedInput, taskInstruction = '', placeh
   });
 
   let response;
+  onSend?.(new TextEncoder().encode(payload).length); // report what is leaving as it leaves
   try {
     response = await fetch('/api/hybrid-reason-stream', {
       method: 'POST',

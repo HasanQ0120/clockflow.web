@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import gsap from 'gsap';
 import {
   KIND_LABEL, TokenVault, restoreSegments, sanitize,
@@ -39,6 +39,28 @@ function Num({ value, dec = 0 }: { value: number; dec?: number }) {
   return <span ref={ref}>{(0).toFixed(dec)}</span>;
 }
 
+/**
+ * Renders **bold** from the model's markdown as React elements. No HTML injection: model output and
+ * restored private values are only ever text nodes.
+ */
+function renderOutput(segments: { text: string; restored: boolean }[]) {
+  const markers = segments.reduce((n, s) => n + (s.restored ? 0 : s.text.split('**').length - 1), 0);
+  let left = markers - (markers % 2); // an unpaired ** stays as typed
+  let bold = false;
+  const out: ReactNode[] = [];
+  const push = (node: ReactNode, key: string) => out.push(bold ? <strong key={key}>{node}</strong> : <span key={key}>{node}</span>);
+  segments.forEach((s, i) => {
+    if (s.restored) { push(<mark>{s.text}</mark>, `${i}`); return; }
+    s.text.split('**').forEach((part, j) => {
+      if (j > 0) {
+        if (left > 0) { bold = !bold; left -= 1; } else push('**', `${i}-${j}m`);
+      }
+      if (part) push(part, `${i}-${j}`);
+    });
+  });
+  return out;
+}
+
 type Mode = 'idle' | 'cloud' | 'offline';
 type Frozen = { raw: SanitizeResult; ask: SanitizeResult | null };
 
@@ -53,7 +75,8 @@ export default function Workspace() {
   const [term, setTerm] = useState('');
   const [selection, setSelection] = useState('');
   const [extra, setExtra] = useState<DeviceEntity[]>([]); // entities Gemini Nano found on this device
-  const [nerState, setNerState] = useState<'heuristic' | 'on-device'>('heuristic');
+  const [scannedText, setScannedText] = useState(''); // input the last detection pass covered
+  const [nanoText, setNanoText] = useState(''); // input Gemini Nano actually succeeded on
   const [nano, setNano] = useState<NanoStatus>({ state: 'unavailable', api: null });
   const [dl, setDl] = useState<number | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -125,34 +148,36 @@ export default function Workspace() {
     return [...a, ...b.filter((e) => !seen.has(e.value))];
   };
 
+  const scanKey = `${raw}\n${action === 'cloud' ? ask : ''}`;
+
   /** Lets the user see what Gemini Nano finds before anything is run or sent. */
   const scanNano = async () => {
     if (!raw.trim() || scanning || busy) return;
     setScanning(true); setStatus('Gemini Nano is scanning on your device');
-    const det = await detectEntitiesOnDevice(`${raw}\n${action === 'cloud' ? ask : ''}`);
-    if (det) { setExtra((cur) => mergeExtra(cur, det.entities)); setNerState('on-device'); }
-    else { setNerState('heuristic'); setNano(await getOnDeviceStatus()); }
+    const text = scanKey;
+    const det = await detectEntitiesOnDevice(text);
+    if (det) { setExtra((cur) => mergeExtra(cur, det.entities)); setNanoText(text); }
+    else { setNanoText(''); setNano(await getOnDeviceStatus()); }
+    setScannedText(text);
     setStatus(''); setScanning(false);
   };
 
   /* Automatic scan: once typing pauses, Gemini Nano reads the text on this device and adds what it finds. */
-  const lastScan = useRef('');
   useEffect(() => {
     if (nano.state !== 'available' || busy || !raw.trim()) return;
-    const text = `${raw}
-${action === 'cloud' ? ask : ''}`;
-    if (text === lastScan.current) return;
+    const text = scanKey;
+    if (text === scannedText) return;
     let cancelled = false;
     const id = setTimeout(async () => {
       setScanning(true);
       const det = await detectEntitiesOnDevice(text);
       if (cancelled) { setScanning(false); return; }
-      lastScan.current = text;
-      if (det) { setExtra((cur) => mergeExtra(cur, det.entities)); setNerState('on-device'); }
+      if (det) { setExtra((cur) => mergeExtra(cur, det.entities)); setNanoText(text); }
+      setScannedText(text);
       setScanning(false);
     }, 900);
     return () => { cancelled = true; clearTimeout(id); };
-  }, [raw, ask, action, nano.state, busy]);
+  }, [scanKey, scannedText, nano.state, busy]);
 
   const downloadNano = async () => {
     setDl(0);
@@ -168,11 +193,12 @@ ${action === 'cloud' ? ask : ''}`;
     const t0 = performance.now();
     if (nano.state === 'available') setStatus('Gemini Nano is scanning on your device');
     let found = extra;
-    const det = await detectEntitiesOnDevice(`${raw}\n${action === 'cloud' ? ask : ''}`);
+    const det = await detectEntitiesOnDevice(scanKey);
     if (det) {
       found = mergeExtra(extra, det.entities);
-      setExtra(found); setNerState('on-device');
-    } else setNerState('heuristic');
+      setExtra(found); setNanoText(scanKey);
+    } else setNanoText('');
+    setScannedText(scanKey);
     setStatus('Detecting sensitive values');
     const o: DetectOptions = { manual, configured, extra: found };
     const r = sanitize(raw, vaultRef.current, o);
@@ -199,12 +225,13 @@ ${action === 'cloud' ? ask : ''}`;
       const res = await streamCloud({
         sanitizedInput: r.sanitized, taskInstruction: a?.sanitized ?? '', placeholders: all.map((e) => e.token),
         signal: ctl.signal, onChunk: (acc: string) => setOutRaw(acc),
+        onSend: (sent: number) => setMetrics((m) => ({ ...m, sent })),
       });
       setStage(4); setStatus('Restoring values from the local vault');
       setOutRaw(res.text); setEngine(`Gemini · ${res.model} via CloakFlow server`);
       setMetrics((m) => ({ ...m, sent: res.sentBytes, cloud: res.cloudMs }));
       await new Promise((r2) => setTimeout(r2, 250));
-      setStage(5); setStatus('Done'); sweepOutput();
+      setStage(5); setStatus('Scan complete'); sweepOutput();
     } catch (e) {
       if ((e as Error)?.name === 'AbortError') return;
       setError((e as Error).message || 'Cloud processing failed.');
@@ -222,14 +249,15 @@ ${action === 'cloud' ? ask : ''}`;
       setOutRaw(res.text); setEngine(res.engineLabel);
       setMetrics((m) => ({ ...m, local: m.local + res.localMs }));
       await new Promise((r2) => setTimeout(r2, 200));
-      setStage(5); setStatus('Done'); sweepOutput();
+      setStage(5); setStatus('Scan complete'); sweepOutput();
     } catch (e) {
       setError((e as Error).message || 'On-device processing failed.');
       setStatus('Stopped'); setStage(-1);
     } finally { setBusy(false); }
   };
 
-  const run = () => { if (!raw.trim() || busy) return; if (action === 'cloud') runCloud(); else runOffline(action); };
+  const needsInstruction = action === 'cloud' && !ask.trim();
+  const run = () => { if (!raw.trim() || busy || needsInstruction) return; if (action === 'cloud') runCloud(); else runOffline(action); };
   const loadPreset = (text: string) => { reset(); setMode('idle'); setRaw(text); setAsk(''); gsap.fromTo('.editor', { borderColor: 'rgba(0,255,136,.9)' }, { borderColor: 'rgba(255,255,255,.09)', duration: 0.8 }); };
   const addTerm = (s: string) => {
     const v = s.trim();
@@ -251,12 +279,16 @@ ${action === 'cloud' ? ask : ''}`;
 
   /* One sentence that always says what has left, or will leave, this browser. */
   const n = view.entries.length;
+  // counts are provisional until both the pattern pass and the Gemini Nano pass have finished
+  const nanoPending = nano.state === 'available' && !!raw.trim() && mode === 'idle' && scannedText !== scanKey;
+  const detecting = scanning || nanoPending || (busy && stage >= 0 && stage < 2);
   let privacy: { tone: 'ok' | 'info' | 'warn'; text: string };
   if (error) privacy = { tone: 'warn', text: 'The request did not complete. No original value was in it.' };
   else if (stage === 5 && mode === 'cloud') privacy = { tone: 'ok', text: `Sent ${metrics.sent.toLocaleString()} bytes of sanitized text. Original sensitive values sent: ${metrics.leaked} bytes.` };
   else if (stage === 5 && offline) privacy = { tone: 'ok', text: 'Processed on your device. Nothing was transmitted.' };
   else if (busy) privacy = { tone: 'info', text: status || 'Working' };
   else if (!raw.trim()) privacy = { tone: 'info', text: 'Nothing is sent until you press run. Detection happens in this tab as you type.' };
+  else if (detecting) privacy = { tone: 'info', text: 'Scanning on your device…' };
   else if (action === 'cloud') privacy = { tone: 'info', text: `${n} sensitive ${n === 1 ? 'value' : 'values'} protected. Cloud AI will receive only the sanitized preview.` };
   else privacy = { tone: 'ok', text: `${n} sensitive ${n === 1 ? 'value' : 'values'} protected. This mode makes no network request.` };
 
@@ -297,8 +329,8 @@ ${action === 'cloud' ? ask : ''}`;
       </ol>
 
       <div className="telemetry">
-        <div><span>Sensitive items found</span><b><Num value={n} /></b></div>
-        <div><span>Original bytes sent</span><b className="good"><Num value={mode === 'idle' ? liveLeak : metrics.leaked} /> B</b></div>
+        <div><span>Sensitive items found</span><b>{detecting ? <span className="scan-wait"><i aria-hidden="true" />scanning…</span> : <Num value={n} />}</b></div>
+        <div><span>Raw data leaked</span><b className={(mode === 'idle' ? liveLeak : metrics.leaked) === 0 ? 'good' : ''}><Num value={mode === 'idle' ? liveLeak : metrics.leaked} /> B</b></div>
         <div><span>Sent to cloud</span><b><Num value={metrics.sent} /> B</b></div>
         <div><span>Local detection</span><b><Num value={mode === 'idle' ? (raw.trim() ? live.ms : 0) : metrics.local} dec={1} /> ms</b></div>
         <div><span>Cloud round trip</span><b><Num value={metrics.cloud} /> ms</b></div>
@@ -321,19 +353,19 @@ ${action === 'cloud' ? ask : ''}`;
           <div className="editor-foot">
             <span>{raw.length.toLocaleString()} characters</span>
             <span className="foot-actions">
-              {nano.state === 'available' && <button className="link" onClick={() => { lastScan.current = ''; scanNano(); }} disabled={!raw.trim() || scanning || busy}>{scanning ? 'Scanning…' : 'Scan with Gemini Nano'}</button>}
-              <button className="link" onClick={() => { addTerm(selection); setSelection(''); }} disabled={selection.trim().length < 2}>Protect selected text</button>
+              {nano.state === 'available' && <button className="link" onClick={scanNano} title="Runs before cloud processing" disabled={!raw.trim() || scanning || busy}>{scanning ? 'Scanning…' : 'Pre-scan locally'}</button>}
+              <button className="link" onClick={() => { addTerm(selection); setSelection(''); }} disabled={selection.trim().length < 2}>Add to mask list</button>
             </span>
           </div>
 
           <details className="terms">
-            <summary>Protected terms{manual.length ? ` (${manual.length})` : ''}</summary>
+            <summary>Always mask these{manual.length ? ` (${manual.length})` : ''}</summary>
             <form className="terms-form" onSubmit={(e) => { e.preventDefault(); addTerm(term); setTerm(''); }}>
               <label className="sr" htmlFor="ws-term">Add a term to always protect</label>
               <input id="ws-term" className="ask" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="A name, project or id to always protect" />
               <button className="btn btn-quiet" type="submit" disabled={term.trim().length < 2}>Add</button>
             </form>
-            <p className="fine">Pattern matching cannot recognise every name. Terms you add are protected wherever they appear{configured.length ? `, along with ${configured.length} configured in Settings` : ''}.</p>
+            <p className="fine">These words are always replaced with placeholders, wherever they appear.{configured.length ? ` ${configured.length} more are configured in Settings.` : ''}</p>
             {manual.length > 0 && (
               <div className="manual">
                 {manual.map((m) => (<button key={m} className="chip chip-x" onClick={() => { touch(); setManual((x) => x.filter((y) => y !== m)); }} aria-label={`Stop protecting ${m}`}>{m}<span aria-hidden="true">×</span></button>))}
@@ -354,7 +386,8 @@ ${action === 'cloud' ? ask : ''}`;
               <input id="ws-ask" className="ask" value={ask} onChange={(e) => { touch(); setAsk(e.target.value); }} placeholder="What do you want done?" />
             </>
           )}
-          <button className="btn btn-run" onClick={run} disabled={busy || !raw.trim()}>{busy ? 'Working…' : cur.run}</button>
+          {needsInstruction && !!raw.trim() && <p className="need" id="ws-need" role="status">Type what you want done to run Cloud AI.</p>}
+          <button className="btn btn-run" onClick={run} disabled={busy || !raw.trim() || needsInstruction} aria-describedby={needsInstruction ? 'ws-need' : undefined}>{busy ? 'Working…' : cur.run}</button>
         </section>
 
         <div className="conduit" aria-hidden="true"><i /></div>
@@ -367,7 +400,7 @@ ${action === 'cloud' ? ask : ''}`;
           </header>
           <div className="statusline">
             <span className={`pill-status ${busy ? 'on' : ''}`}>{status || (raw.trim() ? 'Live scan' : 'Waiting for input')}</span>
-            <span className="muted">Detection: {scanning ? 'Gemini Nano scanning…' : nerState === 'on-device' ? 'Gemini Nano + patterns' : 'patterns only'}</span>
+            <span className="muted">Detection: {detecting ? 'scanning…' : !!raw.trim() && nanoText === scanKey ? 'patterns + Gemini Nano' : nano.state === 'available' && !!raw.trim() && scannedText === scanKey ? 'patterns only (Gemini Nano scan failed)' : 'patterns only'}</span>
           </div>
           <h4 className="sub">Sanitized preview</h4>
           <div className="sanitized" aria-label="Sanitized text">
@@ -375,9 +408,9 @@ ${action === 'cloud' ? ask : ''}`;
               ? <span className="muted">Start typing. Sensitive values are replaced instantly, and this is the only text a cloud model would ever receive.</span>
               : view.raw.segments.map((s, i) => s.token ? <code key={`${i}-${s.text}`} className="tok">{s.text}</code> : <span key={i}>{s.text}</span>)}
           </div>
-          {nano.state !== 'available' && raw.trim() && <p className="note">Gemini Nano is not available here, so detection uses patterns only. Names and project terms they cannot recognise will not be hidden unless you add them under Protected terms.</p>}
+          {nano.state !== 'available' && raw.trim() && <p className="note">Gemini Nano is not available here, so detection uses patterns only. Names and project terms they cannot recognise will not be hidden unless you add them under Always mask these.</p>}
           {offline && <p className="note">Offline mode: this text is processed on your device. No network request is made.</p>}
-          <h4 className="sub">Detected information{n ? ` · ${n}` : ''}</h4>
+          <h4 className="sub">Detected information{detecting ? ' · scanning…' : n ? ` · ${n}` : ''}</h4>
           <div className="vault" aria-label="Token interception table">
             <div className="vault-head"><span>Placeholder</span><span>Original value, held in browser memory</span></div>
             <div className="vault-body">
@@ -386,7 +419,7 @@ ${action === 'cloud' ? ask : ''}`;
                 : view.entries.map((e) => (
                   <div className="vault-row" key={e.token}>
                     <code className="tok">{e.token}</code>
-                    <span className="vault-val">{e.value}</span>
+                    <span className="vault-val" title={e.value}>{e.value}</span>
                     <span className="vault-kind">{KIND_LABEL[e.kind]}</span>
                   </div>
                 ))}
@@ -411,7 +444,7 @@ ${action === 'cloud' ? ask : ''}`;
           <div className="out-body" aria-live="polite">
             {error ? <p className="error"><b>Could not finish.</b> {error}</p>
               : outSegments.length
-                ? outSegments.map((s, i) => (s.restored ? <mark key={i}>{s.text}</mark> : <span key={i}>{s.text}</span>))
+                ? renderOutput(outSegments)
                 : <span className="muted">The answer appears here with the original values restored locally.</span>}
           </div>
           <div className="out-foot">
